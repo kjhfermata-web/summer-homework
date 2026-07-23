@@ -217,7 +217,8 @@ const STUDENT_PASSWORDS = {
     "9": "sun09", "10": "sun10", "11": "sun11", "12": "sun12",
     "13": "sun13", "14": "sun14", "15": "sun15", "16": "sun16",
     "17": "sun17", "18": "sun18", "19": "sun19", "20": "sun20",
-    "21": "sun21", "22": "sun22", "23": "sun23", "24": "sun24"
+    "21": "sun21", "22": "sun22", "23": "sun23", "24": "sun24",
+    "99": "test99"  // 테스트용 계정 (배포 전 삭제 가능)
 };
 // 교사 암호 (teacher.html 접근용)
 const TEACHER_PASSWORD = "teacher1111";
@@ -418,6 +419,9 @@ function renderMain() {
             <div class="section" id="step3">
                 <h2 class="section-title">📸 3단계: 인증 갤러리</h2>
                 <p class="section-desc">비밀미션 수행 사진을 올려주세요!<br>(시간/날짜가 보이는 타임스탬프 앱 사진 1컷)</p>
+                <div style="background:#fff8e1; border-radius:12px; padding:14px 16px; margin-bottom:16px; font-size:0.85em; color:#795548; line-height:1.6;">
+                    ⚠️ 이 곳에 올리는 인증샷은 갤러리에 공유됩니다. 그 사실에 동의한다는 전제하에 자신이 공개하고 싶지 않은 부분은 가리고 올려주세요.<br>(미션이 본인 얼굴이 나와야 하는 경우 본인임을 인증할 수 있기만 하면 됨)
+                </div>
                 <div class="upload-area" onclick="document.getElementById('photoInput').click()">
                     <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
                     <div class="upload-icon">📷</div>
