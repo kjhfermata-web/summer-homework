@@ -200,19 +200,27 @@
 // 🔧 Firebase 설정 - 선생님이 본인 프로젝트 정보로 교체하세요
 // ============================================
 const firebaseConfig = {
-    apiKey: "여기에-API-KEY-입력",
-    authDomain: "여기에-프로젝트ID.firebaseapp.com",
-    databaseURL: "https://여기에-프로젝트ID-default-rtdb.firebaseio.com",
-    projectId: "여기에-프로젝트ID",
-    storageBucket: "여기에-프로젝트ID.appspot.com",
-    messagingSenderId: "여기에-SENDER-ID",
-    appId: "여기에-APP-ID"
+  apiKey: "AIzaSyDILnbAlqgA0KRmRmkqUgV1u8jwmhbxrHE",
+  authDomain: "summer-homework-2026-5e69b.firebaseapp.com",
+  databaseURL: "https://summer-homework-2026-5e69b-default-rtdb.firebaseio.com",
+  projectId: "summer-homework-2026-5e69b",
+  storageBucket: "summer-homework-2026-5e69b.firebasestorage.app",
+  messagingSenderId: "57706366494",
+  appId: "1:57706366494:web:0b3da31462f40a6cfb500f"
 };
 
-// 공통 암호 (선생님이 원하는 암호로 변경)
-const COMMON_PASSWORD = "summer2025";
+
+// 학번별 개별 암호 (선생님이 원하는 대로 수정하세요)
+const STUDENT_PASSWORDS = {
+    "1": "sun01", "2": "sun02", "3": "sun03", "4": "sun04",
+    "5": "sun05", "6": "sun06", "7": "sun07", "8": "sun08",
+    "9": "sun09", "10": "sun10", "11": "sun11", "12": "sun12",
+    "13": "sun13", "14": "sun14", "15": "sun15", "16": "sun16",
+    "17": "sun17", "18": "sun18", "19": "sun19", "20": "sun20",
+    "21": "sun21", "22": "sun22", "23": "sun23", "24": "sun24"
+};
 // 교사 암호 (teacher.html 접근용)
-const TEACHER_PASSWORD = "teacher1234";
+const TEACHER_PASSWORD = "teacher1111";
 
 // ============================================
 firebase.initializeApp(firebaseConfig);
@@ -243,7 +251,7 @@ const missions = [
     "📸 오늘 먹은 음식 사진 찍기",
     "💪 일찍 자고 일찍 일어나기",
     "🎤 좋아하는 노래 열창하기",
-    "🌈 무지개 색깔 물건 7개 찾아 사진 찍기"
+    "🌈 무지개 색깔 물건 7개 찾아 사진 찍고 콜라주로 1장으로 만들기"
 ];
 
 let currentUser = null;
@@ -261,11 +269,11 @@ function renderLogin() {
             <h2>🔑 로그인</h2>
             <div class="input-group">
                 <label>학번</label>
-                <input type="text" id="studentId" placeholder="예: 101, 205..." maxlength="10">
+                <input type="text" id="studentId" placeholder="번호만 입력 (예: 1, 15...)" maxlength="10">
             </div>
             <div class="input-group">
-                <label>암호</label>
-                <input type="password" id="password" placeholder="공통 암호를 입력하세요">
+                <label>개인 암호</label>
+                <input type="password" id="password" placeholder="선생님이 알려준 나만의 암호">
             </div>
             <button class="login-btn" onclick="handleLogin()">로그인</button>
             <p class="error-msg" id="loginError">학번 또는 암호가 올바르지 않습니다.</p>
@@ -281,7 +289,11 @@ function handleLogin() {
         showLoginError('학번을 입력해주세요.');
         return;
     }
-    if (password !== COMMON_PASSWORD) {
+    if (!STUDENT_PASSWORDS[studentId]) {
+        showLoginError('등록되지 않은 학번입니다.');
+        return;
+    }
+    if (password !== STUDENT_PASSWORDS[studentId]) {
         showLoginError('암호가 올바르지 않습니다.');
         return;
     }
@@ -293,7 +305,28 @@ function handleLogin() {
         if (data && data.mission) {
             currentMission = data.mission;
         }
+        if (data && data.photo) {
+            photoData = data.photo;
+        }
         renderMain();
+        // 저장된 2단계 답변 복원
+        if (data && data.answers) {
+            const a1 = document.getElementById('answer1');
+            const a2 = document.getElementById('answer2');
+            const a3 = document.getElementById('answer3');
+            if (a1) a1.value = data.answers.q1 || '';
+            if (a2) a2.value = data.answers.q2 || '';
+            if (a3) a3.value = data.answers.q3 || '';
+        }
+        // 저장된 3단계 댓글/사진 복원
+        if (data && data.comment) {
+            const cm = document.getElementById('comment');
+            if (cm) cm.value = data.comment;
+        }
+        if (data && data.photo) {
+            const img = document.getElementById('previewImg');
+            if (img) { img.src = data.photo; img.style.display = 'block'; }
+        }
     }).catch(() => {
         renderMain();
     });
@@ -316,11 +349,32 @@ function renderMain() {
         <p class="subtitle">선생님에게 안부를 전해주세요!</p>
 
         <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('task')">📝 과제하기</button>
+            <button class="tab-btn active" onclick="switchTab('intro')">🏠 안내</button>
+            <button class="tab-btn" onclick="switchTab('task')">📝 과제하기</button>
             <button class="tab-btn" onclick="switchTab('gallery')">📸 갤러리</button>
         </div>
 
-        <div id="taskTab">
+        <!-- Intro Tab -->
+        <div id="introTab">
+            <div style="background:linear-gradient(135deg,#f8f9fa,#e8f4f8); border-radius:16px; padding:24px; margin-bottom:20px;">
+                <h2 style="color:#333; margin-bottom:16px; text-align:center;">📢 양동여중 3학년 2반</h2>
+                <h3 style="color:#667eea; margin-bottom:14px; text-align:center;">여름방학 기본임무</h3>
+                <div style="background:white; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                    <p style="color:#444; line-height:2; font-size:1.05em;">
+                        <strong>1.</strong> 아프지 말 것<br>
+                        <strong>2.</strong> 방학 동안 한번쯤은 누군가에게 친절할 것<br>
+                        <strong>3.</strong> 개학 날 얼굴 보고 웃으며 인사할 것
+                    </p>
+                </div>
+                <div style="text-align:center; margin-top:20px;">
+                    <p style="font-size:1.1em; font-weight:bold; color:#764ba2;">그리고! 여러분의 3단계 방학 과제 하기 👇</p>
+                    <p style="color:#e74c3c; margin-top:10px; font-weight:bold;">⏰ 제출기한 : 개학 전날 밤까지</p>
+                </div>
+            </div>
+            <button class="next-btn" onclick="switchTab('task')">📝 과제하러 가기 →</button>
+        </div>
+
+        <div id="taskTab" style="display:none;">
             <div class="steps-nav">
                 <button class="step-btn active" id="nav1" onclick="goToStep(1)">1</button>
                 <button class="step-btn" id="nav2" onclick="goToStep(2)">2</button>
@@ -358,10 +412,9 @@ function renderMain() {
                     <label>🔁 질문 3. 방학 중 가장 많이 하는 것 한 가지는?</label>
                     <textarea id="answer3" placeholder="예: 유튜브 보기, 늦잠 자기..."></textarea>
                 </div>
-                <button class="next-btn" onclick="nextStep(3)">다음 단계로 →</button>
+                <button class="next-btn" onclick="saveStep2(); nextStep(3)">다음 단계로 →</button>
+                <button class="next-btn" style="background:linear-gradient(135deg,#f39c12,#e67e22); margin-top:10px;" onclick="saveStep2()">💾 임시저장</button>
             </div>
-
-            <!-- Step 3 -->
             <div class="section" id="step3">
                 <h2 class="section-title">📸 3단계: 인증 갤러리</h2>
                 <p class="section-desc">비밀미션 수행 사진을 올려주세요!<br>(시간/날짜가 보이는 타임스탬프 앱 사진 1컷)</p>
@@ -419,8 +472,13 @@ function logout() {
 // ============================================
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-        btn.classList.toggle('active', (tab === 'task' && i === 0) || (tab === 'gallery' && i === 1));
+        btn.classList.toggle('active', 
+            (tab === 'intro' && i === 0) || 
+            (tab === 'task' && i === 1) || 
+            (tab === 'gallery' && i === 2)
+        );
     });
+    document.getElementById('introTab').style.display = tab === 'intro' ? 'block' : 'none';
     document.getElementById('taskTab').style.display = tab === 'task' ? 'block' : 'none';
     document.getElementById('galleryTab').style.display = tab === 'gallery' ? 'block' : 'none';
     if (tab === 'gallery') loadGallery();
@@ -441,6 +499,29 @@ function nextStep(step) {
     prevNav.classList.remove('active');
     prevNav.classList.add('completed');
     goToStep(step);
+}
+
+// ============================================
+// 2단계: 임시저장
+// ============================================
+function saveStep2() {
+    const answer1 = document.getElementById('answer1').value.trim();
+    const answer2 = document.getElementById('answer2').value.trim();
+    const answer3 = document.getElementById('answer3').value.trim();
+
+    db.ref('students/' + currentUser).update({
+        answers: { q1: answer1, q2: answer2, q3: answer3 }
+    }).then(() => {
+        showSaveToast('💾 임시저장 완료!');
+    });
+}
+
+function showSaveToast(msg) {
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:12px 24px;border-radius:30px;font-size:0.9em;z-index:9999;animation:fadeIn 0.3s;';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
 }
 
 // ============================================
@@ -487,6 +568,9 @@ function handlePhoto(event) {
         const img = document.getElementById('previewImg');
         img.src = compressed;
         img.style.display = 'block';
+        // 사진 즉시 저장
+        db.ref('students/' + currentUser).update({ photo: compressed });
+        showSaveToast('📷 사진 저장됨!');
     });
 }
 
