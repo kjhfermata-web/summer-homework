@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👩‍🏫 교사용 - 여름방학 안부전하기</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container {
+            max-width: 900px; margin: 0 auto; background: white;
+            border-radius: 24px; padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; font-size: 1.6em; margin-bottom: 8px; color: #333; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 0.9em; }
+
+        /* Login */
+        .login-box { max-width: 320px; margin: 0 auto; }
+        .login-box h2 { text-align: center; margin-bottom: 20px; color: #444; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-weight: bold; color: #555; margin-bottom: 6px; font-size: 0.9em; }
+        .input-group input {
+            width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+            border-radius: 12px; font-size: 1em; transition: border-color 0.3s;
+        }
+        .input-group input:focus { outline: none; border-color: #3498db; }
+        .login-btn {
+            display: block; width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white; border: none; border-radius: 14px;
+            font-size: 1.05em; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52,152,219,0.4); }
+        .error-msg { color: #e74c3c; text-align: center; margin-top: 10px; font-size: 0.85em; display: none; }
+
+        /* Stats */
+        .stats-bar {
+            display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .stat-card {
+            flex: 1; min-width: 120px; background: #f8f9fa; border-radius: 12px;
+            padding: 16px; text-align: center;
+        }
+        .stat-number { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stat-label { font-size: 0.8em; color: #888; margin-top: 4px; }
+
+        /* Table */
+        .table-wrapper { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th {
+            background: #3498db; color: white; padding: 12px 10px;
+            text-align: left; font-weight: bold; white-space: nowrap;
+        }
+        th:first-child { border-radius: 8px 0 0 0; }
+        th:last-child { border-radius: 0 8px 0 0; }
+        td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+        tr:hover { background: #f8f9ff; }
+        .status-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 12px;
+            font-size: 0.8em; font-weight: bold;
+        }
+        .status-submitted { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+
+        /* Detail Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+            z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 20px; padding: 30px;
+            max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-close {
+            float: right; background: none; border: none; font-size: 1.5em;
+            cursor: pointer; color: #999;
+        }
+        .modal-close:hover { color: #333; }
+        .modal-section { margin-bottom: 16px; }
+        .modal-section h4 { color: #3498db; margin-bottom: 6px; font-size: 0.95em; }
+        .modal-section p { color: #555; line-height: 1.5; font-size: 0.9em; }
+        .modal-section img {
+            width: 100%; border-radius: 12px; margin-top: 8px; max-height: 250px; object-fit: cover;
+        }
+
+        /* Header */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .logout-btn {
+            background: none; border: 1px solid #ddd; border-radius: 8px;
+            padding: 6px 12px; cursor: pointer; font-size: 0.8em; color: #888;
+        }
+        .logout-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+        .export-btn {
+            background: #27ae60; color: white; border: none; border-radius: 8px;
+            padding: 8px 16px; cursor: pointer; font-size: 0.85em; font-weight: bold;
+        }
+        .export-btn:hover { background: #219a52; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            table { font-size: 0.8em; }
+            th, td { padding: 8px 6px; }
+        }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+    <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+// ============================================
+// 🔧 Firebase 설정 - index.html과 동일하게 입력
+// ============================================
+const firebaseConfig = {
+    apiKey: "여기에-API-KEY-입력",
+    authDomain: "여기에-프로젝트ID.firebaseapp.com",
+    databaseURL: "https://여기에-프로젝트ID-default-rtdb.firebaseio.com",
+    projectId: "여기에-프로젝트ID",
+    storageBucket: "여기에-프로젝트ID.appspot.com",
+    messagingSenderId: "여기에-SENDER-ID",
+    appId: "여기에-APP-ID"
+};
+
+// 교사 암호
+const TEACHER_PASSWORD = "teacher1234";
+
+// ============================================
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let allStudents = [];
+
+// ============================================
+// 로그인
+// ============================================
+function renderLogin() {
+    document.getElementById('app').innerHTML = `
+        <h1>👩‍🏫 교사용 관리 페이지</h1>
+        <p class="subtitle">학생들의 제출 현황을 확인합니다</p>
+        <div class="login-box">
+            <h2>🔐 교사 로그인</h2>
+            <div class="input-group">
+                <label>교사 암호</label>
+                <input type="password" id="teacherPw" placeholder="교사 전용 암호를 입력하세요">
+            </div>
+            <button class="login-btn" onclick="handleLogin()">로그인</button>
+            <p class="error-msg" id="loginError">암호가 올바르지 않습니다.</p>
+        </div>
+    `;
+}
+
+function handleLogin() {
+    const pw = document.getElementById('teacherPw').value;
+    if (pw !== TEACHER_PASSWORD) {
+        const el = document.getElementById('loginError');
+        el.style.display = 'block';
+        return;
+    }
+    loadDashboard();
+}
+
+// ============================================
+// 대시보드
+// ============================================
+function loadDashboard() {
+    document.getElementById('app').innerHTML = `
+        <div class="header-bar">
+            <h1>👩‍🏫 교사용 관리 페이지</h1>
+            <div>
+                <button class="export-btn" onclick="exportCSV()">📥 CSV 내보내기</button>
+                <button class="logout-btn" onclick="renderLogin()">로그아웃</button>
+            </div>
+        </div>
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-card"><div class="stat-number" id="statTotal">-</div><div class="stat-label">전체 학생</div></div>
+            <div class="stat-card"><div class="stat-number" id="statSubmitted">-</div><div class="stat-label">제출 완료</div></div>
+            <div class="stat-card"><div class="stat-number" id="statPending">-</div><div class="stat-label">미제출</div></div>
+            <div class="stat-card"><div class="stat-number" id="statRate">-</div><div class="stat-label">제출률</div></div>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>학번</th>
+                        <th>상태</th>
+                        <th>미션</th>
+                        <th>제출일시</th>
+                        <th>좋아요</th>
+                        <th>상세</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">불러오는 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Firebase에서 데이터 불러오기
+    db.ref('students').on('value', snapshot => {
+        allStudents = [];
+        snapshot.forEach(child => {
+            allStudents.push({ id: child.key, ...child.val() });
+        });
+        renderTable();
+    });
+}
+
+function renderTable() {
+    const submitted = allStudents.filter(s => s.submitted);
+    const total = allStudents.length;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statSubmitted').textContent = submitted.length;
+    document.getElementById('statPending').textContent = total - submitted.length;
+    document.getElementById('statRate').textContent = total > 0 ? Math.round(submitted.length / total * 100) + '%' : '0%';
+
+    const tbody = document.getElementById('tableBody');
+
+    if (allStudents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">아직 접속한 학생이 없습니다</td></tr>';
+        return;
+    }
+
+    // 제출순 정렬 (제출자 먼저, 그 안에서 학번순)
+    const sorted = [...allStudents].sort((a, b) => {
+        if (a.submitted && !b.submitted) return -1;
+        if (!a.submitted && b.submitted) return 1;
+        return a.id.localeCompare(b.id, undefined, { numeric: true });
+    });
+
+    tbody.innerHTML = sorted.map(s => {
+        const likeCount = s.likes ? Object.keys(s.likes).length : 0;
+        const dateStr = s.submittedAt ? formatDate(s.submittedAt) : '-';
+        const statusClass = s.submitted ? 'status-submitted' : 'status-pending';
+        const statusText = s.submitted ? '제출 완료' : '미제출';
+
+        return `
+            <tr>
+                <td><strong>${s.id}</strong></td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.mission || '-'}</td>
+                <td>${dateStr}</td>
+                <td>❤️ ${likeCount}</td>
+                <td>${s.submitted ? `<button onclick="showDetail('${s.id}')" style="background:#3498db;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.8em;">보기</button>` : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function formatDate(isoStr) {
+    const d = new Date(isoStr);
+    return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ============================================
+// 상세 보기 모달
+// ============================================
+function showDetail(studentId) {
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) return;
+
+    const likeCount = student.likes ? Object.keys(student.likes).length : 0;
+
+    document.getElementById('modalContent').innerHTML = `
+        <button class="modal-close" onclick="document.getElementById('modal').classList.remove('active')">&times;</button>
+        <h2 style="margin-bottom:20px;color:#333;">📄 ${student.id}번 학생 제출 내용</h2>
+        
+        <div class="modal-section">
+            <h4>🎲 비밀미션</h4>
+            <p>${student.mission}</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>📍 질문 1. 방학 중 가장 많이 있는 장소</h4>
+            <p>${student.answers ? student.answers.q1 : '-'}</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>😂 질문 2. 가장 웃겼던 일</h4>
+            <p>${student.answers ? student.answers.q2 : '-'}</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>🔁 질문 3. 가장 많이 하는 것</h4>
+            <p>${student.answers ? student.answers.q3 : '-'}</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>📸 인증 사진</h4>
+            ${student.photo ? `<img src="${student.photo}" alt="인증사진">` : '<p>사진 없음</p>'}
+        </div>
+
+        <div class="modal-section">
+            <h4>💬 소감 댓글</h4>
+            <p>${student.comment || '-'}</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>❤️ 좋아요</h4>
+            <p>${likeCount}개</p>
+        </div>
+
+        <div class="modal-section">
+            <h4>🕐 제출 일시</h4>
+            <p>${student.submittedAt ? new Date(student.submittedAt).toLocaleString('ko-KR') : '-'}</p>
+        </div>
+    `;
+    document.getElementById('modal').classList.add('active');
+}
+
+function closeModal(event) {
+    if (event.target === document.getElementById('modal')) {
+        document.getElementById('modal').classList.remove('active');
+    }
+}
+
+// ============================================
+// CSV 내보내기
+// ============================================
+function exportCSV() {
+    if (allStudents.length === 0) {
+        alert('내보낼 데이터가 없습니다.');
+        return;
+    }
+
+    const headers = ['학번', '상태', '미션', '질문1_장소', '질문2_웃겼던일', '질문3_많이하는것', '댓글', '좋아요수', '제출일시'];
+    const rows = allStudents.map(s => {
+        const likeCount = s.likes ? Object.keys(s.likes).length : 0;
+        return [
+            s.id,
+            s.submitted ? '제출완료' : '미제출',
+            s.mission || '',
+            s.answers ? s.answers.q1 : '',
+            s.answers ? s.answers.q2 : '',
+            s.answers ? s.answers.q3 : '',
+            s.comment || '',
+            likeCount,
+            s.submittedAt ? new Date(s.submittedAt).toLocaleString('ko-KR') : ''
+        ];
+    });
+
+    let csv = '\uFEFF' + headers.join(',') + '\n';
+    rows.forEach(row => {
+        csv += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '여름방학_안부전하기_결과.csv';
+    link.click();
+}
+
+// ============================================
+// 초기 실행
+// ============================================
+renderLogin();
+</script>
+</body>
+</html>

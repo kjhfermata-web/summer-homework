@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌻 여름방학 안부전하기</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; font-size: 1.8em; margin-bottom: 8px; color: #333; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 0.95em; }
+
+        /* Login */
+        .login-box { max-width: 320px; margin: 0 auto; }
+        .login-box h2 { text-align: center; margin-bottom: 20px; color: #444; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-weight: bold; color: #555; margin-bottom: 6px; font-size: 0.9em; }
+        .input-group input, .input-group select {
+            width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+            border-radius: 12px; font-size: 1em; transition: border-color 0.3s;
+        }
+        .input-group input:focus, .input-group select:focus { outline: none; border-color: #667eea; }
+        .login-btn {
+            display: block; width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 14px;
+            font-size: 1.05em; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+        .error-msg { color: #e74c3c; text-align: center; margin-top: 10px; font-size: 0.85em; display: none; }
+
+        /* Steps Navigation */
+        .steps-nav { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
+        .step-btn {
+            width: 44px; height: 44px; border-radius: 50%; border: 3px solid #ddd;
+            background: #f5f5f5; font-weight: bold; font-size: 1.1em;
+            cursor: pointer; transition: all 0.3s; color: #999;
+        }
+        .step-btn.active { border-color: #667eea; background: #667eea; color: white; transform: scale(1.1); }
+        .step-btn.completed { border-color: #4caf50; background: #4caf50; color: white; }
+        .step-btn:disabled { cursor: default; opacity: 0.6; }
+
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .section-title { font-size: 1.3em; color: #333; margin-bottom: 6px; text-align: center; }
+        .section-desc { text-align: center; color: #777; margin-bottom: 20px; font-size: 0.9em; }
+
+        /* Mission Card */
+        .mission-area { text-align: center; padding: 20px; }
+        .mission-card {
+            background: linear-gradient(135deg, #f093fb, #f5576c); color: white;
+            border-radius: 16px; padding: 30px 20px; margin: 16px 0;
+            font-size: 1.15em; font-weight: bold; min-height: 100px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(240,80,120,0.3); transition: transform 0.3s;
+        }
+        .mission-card.locked {
+            background: linear-gradient(135deg, #a8e063, #56ab2f);
+        }
+        .draw-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            border: none; padding: 14px 36px; border-radius: 30px;
+            font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+        }
+        .draw-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.5); }
+        .draw-btn:disabled { background: #ccc; cursor: default; transform: none; box-shadow: none; }
+
+        /* Form */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; color: #444; margin-bottom: 8px; font-size: 0.95em; }
+        .form-group textarea {
+            width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+            border-radius: 12px; font-size: 1em; resize: vertical;
+            min-height: 80px; transition: border-color 0.3s; font-family: inherit;
+        }
+        .form-group textarea:focus { outline: none; border-color: #667eea; }
+
+        /* Upload */
+        .upload-area {
+            border: 2px dashed #ccc; border-radius: 16px; padding: 30px;
+            text-align: center; cursor: pointer; transition: all 0.3s;
+            margin-bottom: 16px; background: #fafafa;
+        }
+        .upload-area:hover { border-color: #667eea; background: #f0f0ff; }
+        .upload-area input { display: none; }
+        .upload-icon { font-size: 2.5em; margin-bottom: 8px; }
+        .upload-text { color: #888; font-size: 0.9em; }
+        .preview-img {
+            width: 100%; max-height: 300px; object-fit: cover;
+            border-radius: 12px; margin-bottom: 12px; display: none;
+        }
+
+        /* Buttons */
+        .next-btn {
+            display: block; width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 14px;
+            font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 20px; transition: all 0.3s;
+        }
+        .next-btn:hover { transform: translateY(-2px); }
+        .submit-btn {
+            display: block; width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white; border: none; border-radius: 14px;
+            font-size: 1.1em; font-weight: bold; cursor: pointer;
+            margin-top: 20px; transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76,175,80,0.4); }
+        .submit-btn:disabled { background: #ccc; cursor: default; transform: none; box-shadow: none; }
+
+        /* Gallery */
+        .gallery-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
+        .gallery-item {
+            background: #f8f9fa; border-radius: 16px; padding: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.2s;
+        }
+        .gallery-item:hover { transform: translateY(-2px); }
+        .gallery-item img {
+            width: 100%; height: 200px; object-fit: cover;
+            border-radius: 12px; margin-bottom: 10px;
+        }
+        .gallery-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .gallery-student { font-weight: bold; color: #444; font-size: 0.9em; }
+        .gallery-date { color: #999; font-size: 0.8em; }
+        .gallery-mission { color: #667eea; font-size: 0.85em; margin-bottom: 6px; }
+        .gallery-comment { color: #555; font-size: 0.9em; line-height: 1.4; }
+        .like-btn {
+            background: none; border: 1px solid #e0e0e0; border-radius: 20px;
+            padding: 6px 14px; cursor: pointer; font-size: 0.85em;
+            transition: all 0.3s; display: inline-flex; align-items: center; gap: 4px;
+        }
+        .like-btn:hover { border-color: #e74c3c; background: #fff5f5; }
+        .like-btn.liked { border-color: #e74c3c; background: #ffe8e8; color: #e74c3c; }
+
+        /* Complete */
+        .complete-screen { text-align: center; padding: 40px 20px; }
+        .complete-screen .emoji { font-size: 4em; margin-bottom: 16px; }
+        .complete-screen h2 { color: #333; margin-bottom: 12px; }
+        .complete-screen p { color: #666; line-height: 1.6; }
+        .gallery-link {
+            display: inline-block; margin-top: 20px; padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; text-decoration: none; border-radius: 30px;
+            font-weight: bold; transition: all 0.3s;
+        }
+        .gallery-link:hover { transform: translateY(-2px); }
+
+        /* Tab Navigation */
+        .tab-nav { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+        .tab-btn {
+            flex: 1; padding: 12px; text-align: center; background: none;
+            border: none; font-size: 1em; font-weight: bold; color: #999;
+            cursor: pointer; transition: all 0.3s; border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        .shaking { animation: shake 0.1s ease-in-out 5; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+
+        /* Header with logout */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .user-info { font-size: 0.85em; color: #888; }
+        .logout-btn {
+            background: none; border: 1px solid #ddd; border-radius: 8px;
+            padding: 6px 12px; cursor: pointer; font-size: 0.8em; color: #888;
+        }
+        .logout-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+// ============================================
+// 🔧 Firebase 설정 - 선생님이 본인 프로젝트 정보로 교체하세요
+// ============================================
+const firebaseConfig = {
+    apiKey: "여기에-API-KEY-입력",
+    authDomain: "여기에-프로젝트ID.firebaseapp.com",
+    databaseURL: "https://여기에-프로젝트ID-default-rtdb.firebaseio.com",
+    projectId: "여기에-프로젝트ID",
+    storageBucket: "여기에-프로젝트ID.appspot.com",
+    messagingSenderId: "여기에-SENDER-ID",
+    appId: "여기에-APP-ID"
+};
+
+// 공통 암호 (선생님이 원하는 암호로 변경)
+const COMMON_PASSWORD = "summer2025";
+// 교사 암호 (teacher.html 접근용)
+const TEACHER_PASSWORD = "teacher1234";
+
+// ============================================
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 비밀미션 24가지
+const missions = [
+    "🌅 새벽에 일찍 일어나 산책하기",
+    "📚 책 한 권 끝까지 읽기",
+    "🧹 집안일 20분 돕기",
+    "👋 평소 안 친했던 친구에게 안부 묻기",
+    "🥤 부모님께 음료 사드리기",
+    "🌤️ 하늘 사진 찍기",
+    "🌙 밤에 별 보기",
+    "🍳 가족에게 간단한 요리 해주기",
+    "✉️ 감사 편지 쓰기",
+    "🎵 새로운 노래 하나 배우기",
+    "🏃 30분 이상 운동하기",
+    "🌱 식물에 물 주며 관찰하기",
+    "📵 하루 1시간 핸드폰 없이 보내기",
+    "🎨 그림 그리거나 색칠하기",
+    "🗑️ 내 방 깨끗이 정리하기",
+    "👨‍👩‍👧 가족과 보드게임 하기",
+    "📝 일기 쓰기",
+    "🚶 동네에서 안 가본 길 걸어보기",
+    "🧘 5분 명상하기",
+    "🎁 동생이나 형제에게 작은 선물하기",
+    "📸 오늘 먹은 음식 사진 찍기",
+    "💪 일찍 자고 일찍 일어나기",
+    "🎤 좋아하는 노래 열창하기",
+    "🌈 무지개 색깔 물건 7개 찾아 사진 찍기"
+];
+
+let currentUser = null;
+let currentMission = "";
+let photoData = "";
+
+// ============================================
+// 페이지 렌더링
+// ============================================
+function renderLogin() {
+    document.getElementById('app').innerHTML = `
+        <h1>🌻 여름방학 안부전하기</h1>
+        <p class="subtitle">선생님에게 안부를 전해주세요!</p>
+        <div class="login-box">
+            <h2>🔑 로그인</h2>
+            <div class="input-group">
+                <label>학번</label>
+                <input type="text" id="studentId" placeholder="예: 101, 205..." maxlength="10">
+            </div>
+            <div class="input-group">
+                <label>암호</label>
+                <input type="password" id="password" placeholder="공통 암호를 입력하세요">
+            </div>
+            <button class="login-btn" onclick="handleLogin()">로그인</button>
+            <p class="error-msg" id="loginError">학번 또는 암호가 올바르지 않습니다.</p>
+        </div>
+    `;
+}
+
+function handleLogin() {
+    const studentId = document.getElementById('studentId').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!studentId) {
+        showLoginError('학번을 입력해주세요.');
+        return;
+    }
+    if (password !== COMMON_PASSWORD) {
+        showLoginError('암호가 올바르지 않습니다.');
+        return;
+    }
+
+    currentUser = studentId;
+    // Firebase에서 기존 데이터 확인
+    db.ref('students/' + studentId).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.mission) {
+            currentMission = data.mission;
+        }
+        renderMain();
+    }).catch(() => {
+        renderMain();
+    });
+}
+
+function showLoginError(msg) {
+    const el = document.getElementById('loginError');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+function renderMain() {
+    const hasSubmitted = false;
+    document.getElementById('app').innerHTML = `
+        <div class="header-bar">
+            <span class="user-info">👋 ${currentUser}번 학생</span>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+        <h1>🌻 여름방학 안부전하기</h1>
+        <p class="subtitle">선생님에게 안부를 전해주세요!</p>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('task')">📝 과제하기</button>
+            <button class="tab-btn" onclick="switchTab('gallery')">📸 갤러리</button>
+        </div>
+
+        <div id="taskTab">
+            <div class="steps-nav">
+                <button class="step-btn active" id="nav1" onclick="goToStep(1)">1</button>
+                <button class="step-btn" id="nav2" onclick="goToStep(2)">2</button>
+                <button class="step-btn" id="nav3" onclick="goToStep(3)">3</button>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="section active" id="step1">
+                <h2 class="section-title">🎲 1단계: 비밀미션 뽑기</h2>
+                <p class="section-desc">버튼을 눌러 나만의 비밀미션을 뽑아보세요!<br><small>(한 번만 뽑을 수 있어요)</small></p>
+                <div class="mission-area">
+                    <div class="mission-card ${currentMission ? 'locked' : ''}" id="missionCard">
+                        ${currentMission ? currentMission : '❓ 버튼을 눌러 미션을 확인하세요'}
+                    </div>
+                    <button class="draw-btn" id="drawBtn" onclick="drawMission()" ${currentMission ? 'disabled' : ''}>
+                        ${currentMission ? '✅ 미션 확정 완료' : '🎰 미션 뽑기!'}
+                    </button>
+                </div>
+                <button class="next-btn" onclick="nextStep(2)">다음 단계로 →</button>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="section" id="step2">
+                <h2 class="section-title">📋 2단계: 생존신고서</h2>
+                <p class="section-desc">방학 중 나의 일상을 알려주세요!</p>
+                <div class="form-group">
+                    <label>📍 질문 1. 방학 중 내가 가장 많이 있는 장소는?</label>
+                    <textarea id="answer1" placeholder="예: 내 방, 거실 소파, 도서관..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>😂 질문 2. 방학 중 가장 웃겼던 일 한 가지는?</label>
+                    <textarea id="answer2" placeholder="예: 동생이랑 라면 끓이다가..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>🔁 질문 3. 방학 중 가장 많이 하는 것 한 가지는?</label>
+                    <textarea id="answer3" placeholder="예: 유튜브 보기, 늦잠 자기..."></textarea>
+                </div>
+                <button class="next-btn" onclick="nextStep(3)">다음 단계로 →</button>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="section" id="step3">
+                <h2 class="section-title">📸 3단계: 인증 갤러리</h2>
+                <p class="section-desc">비밀미션 수행 사진을 올려주세요!<br>(시간/날짜가 보이는 타임스탬프 앱 사진 1컷)</p>
+                <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+                    <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">클릭하여 사진 업로드<br>(자동으로 압축됩니다)</div>
+                </div>
+                <img class="preview-img" id="previewImg">
+                <div class="form-group">
+                    <label>💬 한마디 댓글 (미션 수행 소감)</label>
+                    <textarea id="comment" placeholder="미션 수행하면서 느낀 점을 한마디로!"></textarea>
+                </div>
+                <button class="submit-btn" id="submitBtn" onclick="submitAll()">✅ 제출 완료!</button>
+            </div>
+
+            <!-- Complete -->
+            <div class="section" id="completeSection">
+                <div class="complete-screen" style="display:block;">
+                    <div class="emoji">🎉</div>
+                    <h2>안부 전하기 완료!</h2>
+                    <p>잘 지내고 있구나! 고마워요 😊<br>남은 방학도 건강하고 즐겁게 보내세요!</p>
+                    <a href="#" class="gallery-link" onclick="switchTab('gallery'); return false;">📸 갤러리 구경하기</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="galleryTab" style="display:none;">
+            <h2 class="section-title">📸 우리 반 인증 갤러리</h2>
+            <p class="section-desc">친구들의 미션 수행 사진을 구경하세요!</p>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="loading">📡 불러오는 중...</div>
+            </div>
+        </div>
+    `;
+
+    // 기존 제출 여부 확인
+    db.ref('students/' + currentUser).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.submitted) {
+            showCompleteScreen();
+        }
+    });
+}
+
+function logout() {
+    currentUser = null;
+    currentMission = "";
+    photoData = "";
+    renderLogin();
+}
+
+// ============================================
+// 탭 전환
+// ============================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', (tab === 'task' && i === 0) || (tab === 'gallery' && i === 1));
+    });
+    document.getElementById('taskTab').style.display = tab === 'task' ? 'block' : 'none';
+    document.getElementById('galleryTab').style.display = tab === 'gallery' ? 'block' : 'none';
+    if (tab === 'gallery') loadGallery();
+}
+
+// ============================================
+// 단계 이동
+// ============================================
+function goToStep(step) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('step' + step).classList.add('active');
+    document.getElementById('nav' + step).classList.add('active');
+}
+
+function nextStep(step) {
+    const prevNav = document.getElementById('nav' + (step - 1));
+    prevNav.classList.remove('active');
+    prevNav.classList.add('completed');
+    goToStep(step);
+}
+
+// ============================================
+// 1단계: 미션 뽑기 (1회 제한)
+// ============================================
+function drawMission() {
+    if (currentMission) {
+        alert('이미 미션을 뽑았습니다! 당신이 뽑은 미션을 받아들이세요~ 😄');
+        return;
+    }
+
+    const card = document.getElementById('missionCard');
+    const btn = document.getElementById('drawBtn');
+    card.classList.add('shaking');
+
+    let randomIndex = Math.floor(Math.random() * missions.length);
+    currentMission = missions[randomIndex];
+
+    setTimeout(() => {
+        card.classList.remove('shaking');
+        card.textContent = currentMission;
+        card.classList.add('locked');
+        btn.disabled = true;
+        btn.textContent = '✅ 미션 확정 완료';
+
+        // Firebase에 미션 저장
+        db.ref('students/' + currentUser).update({
+            mission: currentMission,
+            missionDrawnAt: new Date().toISOString()
+        });
+    }, 500);
+}
+
+// ============================================
+// 3단계: 사진 처리 (압축)
+// ============================================
+function handlePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 이미지 압축 (최대 800px, 품질 0.6)
+    compressImage(file, 800, 0.6).then(compressed => {
+        photoData = compressed;
+        const img = document.getElementById('previewImg');
+        img.src = compressed;
+        img.style.display = 'block';
+    });
+}
+
+function compressImage(file, maxSize, quality) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+                } else {
+                    if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ============================================
+// 제출
+// ============================================
+function submitAll() {
+    const answer1 = document.getElementById('answer1').value.trim();
+    const answer2 = document.getElementById('answer2').value.trim();
+    const answer3 = document.getElementById('answer3').value.trim();
+    const comment = document.getElementById('comment').value.trim();
+
+    if (!currentMission) {
+        alert('1단계에서 비밀미션을 먼저 뽑아주세요! 🎲');
+        goToStep(1);
+        return;
+    }
+    if (!answer1 || !answer2 || !answer3) {
+        alert('2단계 질문에 모두 답해주세요! 📋');
+        goToStep(2);
+        return;
+    }
+    if (!photoData) {
+        alert('3단계에서 인증 사진을 올려주세요! 📸');
+        return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 제출 중...';
+
+    const submissionData = {
+        studentId: currentUser,
+        mission: currentMission,
+        answers: { q1: answer1, q2: answer2, q3: answer3 },
+        photo: photoData,
+        comment: comment,
+        submittedAt: new Date().toISOString(),
+        submitted: true,
+        likes: {}
+    };
+
+    db.ref('students/' + currentUser).set(submissionData).then(() => {
+        showCompleteScreen();
+    }).catch(err => {
+        alert('제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+        btn.disabled = false;
+        btn.textContent = '✅ 제출 완료!';
+        console.error(err);
+    });
+}
+
+function showCompleteScreen() {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelector('.steps-nav').style.display = 'none';
+    document.getElementById('completeSection').classList.add('active');
+}
+
+// ============================================
+// 갤러리
+// ============================================
+function loadGallery() {
+    const grid = document.getElementById('galleryGrid');
+    grid.innerHTML = '<div class="loading">📡 불러오는 중...</div>';
+
+    db.ref('students').orderByChild('submittedAt').once('value').then(snapshot => {
+        const items = [];
+        snapshot.forEach(child => {
+            const data = child.val();
+            if (data.submitted && data.photo) {
+                items.push({ ...data, key: child.key });
+            }
+        });
+
+        // 최신순 정렬
+        items.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+        if (items.length === 0) {
+            grid.innerHTML = '<div class="loading">아직 제출된 사진이 없어요 🙈</div>';
+            return;
+        }
+
+        grid.innerHTML = items.map(item => {
+            const date = new Date(item.submittedAt);
+            const dateStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+            const likeCount = item.likes ? Object.keys(item.likes).length : 0;
+            const isLiked = item.likes && item.likes[currentUser];
+
+            return `
+                <div class="gallery-item">
+                    <img src="${item.photo}" alt="인증사진">
+                    <div class="gallery-meta">
+                        <span class="gallery-student">${item.studentId}번 학생</span>
+                        <span class="gallery-date">${dateStr}</span>
+                    </div>
+                    <div class="gallery-mission">${item.mission}</div>
+                    <div class="gallery-comment">${item.comment || ''}</div>
+                    <div style="margin-top:10px;">
+                        <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${item.key}')">
+                            ${isLiked ? '❤️' : '🤍'} <span>${likeCount}</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+}
+
+function toggleLike(studentKey) {
+    const likeRef = db.ref('students/' + studentKey + '/likes/' + currentUser);
+    likeRef.once('value').then(snapshot => {
+        if (snapshot.val()) {
+            likeRef.remove().then(() => loadGallery());
+        } else {
+            likeRef.set(true).then(() => loadGallery());
+        }
+    });
+}
+
+// ============================================
+// 초기 실행
+// ============================================
+renderLogin();
+</script>
+</body>
+</html>
