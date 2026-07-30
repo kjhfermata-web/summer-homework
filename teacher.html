@@ -215,10 +215,15 @@ function loadDashboard() {
     // Firebase에서 데이터 불러오기
     db.ref('students').on('value', snapshot => {
         allStudents = [];
-        snapshot.forEach(child => {
-            allStudents.push({ id: child.key, ...child.val() });
-        });
+        if (snapshot.exists()) {
+            snapshot.forEach(child => {
+                allStudents.push({ id: child.key, ...child.val() });
+            });
+        }
         renderTable();
+    }, error => {
+        document.getElementById('tableBody').innerHTML = 
+            '<tr><td colspan="6" style="text-align:center;padding:30px;color:#e74c3c;">❌ 데이터 불러오기 실패: ' + error.message + '</td></tr>';
     });
 }
 
@@ -234,7 +239,7 @@ function renderTable() {
     const tbody = document.getElementById('tableBody');
 
     if (allStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">아직 접속한 학생이 없습니다</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">✅ 연결 성공! 아직 제출한 학생이 없습니다.</td></tr>';
         return;
     }
 
